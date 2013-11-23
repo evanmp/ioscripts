@@ -44,15 +44,27 @@ try:
     import json
 except ImportError:
     import simplejson as json
+
+
+def getDistinctIds(jsonList):    
+	'''this is very likely to fail for properties given the $ in people exports'''
+	ids = []
+	for element in jsonList:
+		properties = element['properties']
+		ids.append(properties['distinct_id'])
+	'''make the id list unique by casting it into a set'''		
+	ids = set(ids)
+
  
 class Mixpanel(object):
 
     ENDPOINT = 'http://data.mixpanel.com/api'
     VERSION = '2.0'
 
-    def __init__(self, api_key, api_secret):
+    def __init__(self, api_key, api_secret, token):
         self.api_key = api_key
         self.api_secret = api_secret
+        self.token = token
 
     def request(self, methods, params, format='json'):
         """
@@ -147,7 +159,8 @@ class Mixpanel(object):
 if __name__ == '__main__':
     mixpanel = Mixpanel(
         api_key = '3591de50eb56dd8f2c4813c6cef7ff00',
-        api_secret = 'ffe503a4dbb621844d2e1f2a7dc1852e'
+        api_secret = 'ffe503a4dbb621844d2e1f2a7dc1852e',
+        token = '7cf84d01db1eab390298ed500bc43610'
     )
     
     mixpanel.request(['export'], 
@@ -160,5 +173,5 @@ if __name__ == '__main__':
     # print type(mixpanel.data) # <type 'str'>
     ''' change self.events to json encoding'''
     mixpanel.data_to_json("events")
-    print mixpanel.events
+    ids_events = getDistinctIds(mixpanel.events)
 
