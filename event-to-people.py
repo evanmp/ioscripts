@@ -1,9 +1,5 @@
 '''
-
-step #1 get all events of a name
- (1B get event name from sys args)
-
-step #2 get all distinct ids from these events with the max date
+Step #2 get max date of event
 
 Step #3 get all people profiles -> text file
 
@@ -37,25 +33,48 @@ Step #6 for each distinct_id, $set( EVENT_NAME: date ) with $ignore_time = TRUE
 
 import hashlib
 import urllib
+import urllib2 #for sending requests
 import time
 import sys
+import base64
 
 try:
     import json
 except ImportError:
     import simplejson as json
 
+def get_options():
 
-def getDistinctIds(jsonList):    
+	to_date = raw_input("What should the earlist date be in YYYY-MM-DD format?"+'\n')
+	from_date = raw_input("What should the latest date be in YYYY-MM-DD format?"+'\n')
+	event = raw_input("What event do you wish to convert into a People property?"+'\n')
+	fname = raw_input("What should the people export file be called?"+'\n')
+
+	optionsDict = {'to_date': to_date, 'from_date': from_date, 'event': event, 'fname': fname}
+	return optionsDict
+
+
+def getDistinctIdsEvents(jsonList):    
 	'''this is very likely to fail for properties given the $ in people exports'''
 	ids = []
 	for element in jsonList:
 		properties = element['properties']
 		ids.append(properties['distinct_id'])
 	'''make the id list unique by casting it into a set'''		
-	ids = set(ids)
 
- 
+	return set(ids)
+
+def getDistinctIdsPeople(filename):
+	'''this is for people updates'''
+	ids = []
+	with open(filename, 'rb') as f:
+		users = f.readlines()
+		for user in users:
+			ids.append(json.loads(user)['$distinct_id'])
+	f.close()
+
+	return set(ids)
+
 class Mixpanel(object):
 
     ENDPOINT = 'http://data.mixpanel.com/api'
@@ -66,7 +85,7 @@ class Mixpanel(object):
         self.api_secret = api_secret
         self.token = token
 
-    def request(self, methods, params, format='json'):
+    def event_request(self, methods, params, format='json'):
         """
             methods - List of methods to be joined, e.g. ['events', 'properties', 'values']
                       will give us http://mixpanel.com/api/2.0/events/properties/values/
@@ -83,6 +102,21 @@ class Mixpanel(object):
         request = urllib.urlopen(request_url)
         data_output = request.read()    
         self.data = data_output
+
+    def people_request(self, params, format = 'json'):
+        '''let's craft the http request'''
+        params['api_key']=self.api_key
+        params['expire'] = int(time.time())+600 # 600 is ten minutes from now
+        if 'sig' in params: del params['sig']
+        params['sig'] = self.hash_args(params)
+
+        request_url = 'http://mixpanel.com/api/2.0/engage/?' + self.unicode_urlencode(params)
+
+        request = urllib.urlopen(request_url)
+        data = request.read()
+        #print request_url
+
+        return data
 
     def unicode_urlencode(self, params):
         """
@@ -156,22 +190,102 @@ class Mixpanel(object):
 		return
 		'''
 
+    def update(self, userlist, idList, uparams):
+    	'''this is for people updates'''
+        url = "http://api.mixpanel.com/engage/"
+        batch = []
+        i = 0
+        for user in userlist:
+            distinctid = json.loads(user)['$distinct_id']
+            if distinctid in idList:
+				print 'inside'
+				tempparams = {
+					'token':self.token,
+					'$distinct_id':distinctid
+				}
+				tempparams.update(uparams)
+				batch.append(tempparams)
+				i =+ 1
+
+        print "Updating %s users" % i
+        payload = {"data":base64.b64encode(json.dumps(batch)), "verbose":1,"api_key":self.api_key}
+
+        response = urllib2.urlopen(url, urllib.urlencode(payload))
+        message = response.read()
+
+        '''if something goes wrong, this will say what'''
+        if json.loads(message)['status'] != 1:
+            print message
+
+    def batch_update(self, filename, idList, params):
+    	'''this is for people batch updates'''
+    	with open(filename,'r') as f:
+			users = f.readlines()
+        counter = len(users) // 100
+        while len(users):
+            batch = users[:50]
+            self.update(batch, idList, params)
+            if len(users) // 100 != counter:
+                counter = len(users) // 100
+                print "%d users left to update" % len(users)
+            users = users[50:]
+
+
 if __name__ == '__main__':
     mixpanel = Mixpanel(
         api_key = '3591de50eb56dd8f2c4813c6cef7ff00',
         api_secret = 'ffe503a4dbb621844d2e1f2a7dc1852e',
         token = '7cf84d01db1eab390298ed500bc43610'
     )
-    
-    mixpanel.request(['export'], 
-    	{'event' : ['Landing Page Loaded'],
-        'to_date' : '2013-11-22',
-        'from_date': '2013-11-15'
+
+    options = get_options()
+
+    '''TO DO CHANGE THIS TO SYS ARG'''    
+    mixpanel.event_request(['export'], 
+    	{'event' : options['event'],
+        'to_date' : options['to_date'],
+        'from_date': options['from_date']
     })
 
     # print mixpanel.data
     # print type(mixpanel.data) # <type 'str'>
     ''' change self.events to json encoding'''
     mixpanel.data_to_json("events")
-    ids_events = getDistinctIds(mixpanel.events)
+    ids_events = getDistinctIdsEvents(mixpanel.events)
 
+    ''' let us get all the people, export them, and read in the data'''
+    fname = options['fname']
+    parameters = {'selector':''}
+    response = mixpanel.people_request(parameters)
+    
+    parameters['session_id'] = json.loads(response)['session_id']
+    parameters['page']=0
+    global_total = json.loads(response)['total']
+    
+    print "Session id is %s \n" % parameters['session_id']
+    print "Here are the # of People Profiles %d" % global_total
+    has_results = True
+    total = 0
+    with open(fname,'w') as f:
+        while has_results:
+            responser = json.loads(response)['results']
+            total += len(responser)
+            has_results = len(responser) == 1000
+            for data in responser:
+                f.write(json.dumps(data)+'\n')
+            print "%d / %d" % (total,global_total)
+            parameters['page'] += 1
+            if has_results:
+                response = mixpanel.people_request(parameters)
+	f.close()
+
+	ids_people = getDistinctIdsPeople(fname)
+	ids_common = ids_people.intersection(ids_people, ids_events)
+
+	'''change the landing page loaded to sysarg'''
+	''' get max date and pass it'''
+	mixpanel.batch_update(fname, ids_common, {'$set': {'Landing Page Loaded': 'true'}, '$ignore_time': "true"})
+
+
+
+    ####
