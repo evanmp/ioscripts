@@ -308,7 +308,7 @@ if __name__ == '__main__':
 	'''TO DO get max date and pass it'''
 	mixpanel.batch_update(fname, ids_common, {'$set': {options['event']: 'true'}, 
 												'$ignore_time': "true", 
-												"$ip": 0
+												"ip": 0
 											})
 
     ####
