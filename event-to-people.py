@@ -45,24 +45,41 @@ except ImportError:
 
 def get_options():
 
-	to_date = raw_input("What should the earlist date be in YYYY-MM-DD format?"+'\n')
-	from_date = raw_input("What should the latest date be in YYYY-MM-DD format?"+'\n')
+	to_date = raw_input("What should the latest date be in YYYY-MM-DD format? (max: yesterday)"+'\n')
+	from_date = raw_input("What should the earlist date be in YYYY-MM-DD format?"+'\n')
 	event = raw_input("What event do you wish to convert into a People property?"+'\n')
 	fname = raw_input("What should the people export file be called?"+'\n')
 
-	optionsDict = {'to_date': to_date, 'from_date': from_date, 'event': event, 'fname': fname}
+	api_key = raw_input("Tell me your api_key:"+'\n')
+	api_secret = raw_input("Tell me your api_secret"+'\n')
+	token = raw_input("Tell me your token"+'\n')
+
+	optionsDict = {'to_date': to_date, 
+				'from_date': from_date, 
+				'event': event, 
+				'fname': fname,
+				'api_key': api_key,
+				'api_secret': api_secret,
+				'token': token
+				}
+
 	return optionsDict
 
 
 def getDistinctIdsEvents(jsonList):    
-	'''this is very likely to fail for properties given the $ in people exports'''
-	ids = []
+	'''this gets unique distinctids in the event list'''
+	'''to do pass through max dates too'''
+	ids = {}
 	for element in jsonList:
 		properties = element['properties']
-		ids.append(properties['distinct_id'])
-	'''make the id list unique by casting it into a set'''		
-
-	return set(ids)
+		try: 
+			ids[properties['distinct_id']] # if distinct_id is already in dict
+			if ids[properties['distinct_id']] < properties['time']: #if current time < max time
+				ids[properties['distinct_id']] = properties['time']
+		except:
+			ids[properties['distinct_id']] = properties['time']
+	'''make the id list unique by casting it into a set'''
+	return ids
 
 def getDistinctIdsPeople(filename):
 	'''this is for people updates'''
@@ -183,12 +200,6 @@ class Mixpanel(object):
 	            event_list.append(event_json)
 
 	        self.events = event_list
-		'''
-		if exportType == "people":
-	    	self.people = "foo"
-
-		return
-		'''
 
     def update(self, userlist, idList, uparams):
     	'''this is for people updates'''
@@ -198,7 +209,6 @@ class Mixpanel(object):
         for user in userlist:
             distinctid = json.loads(user)['$distinct_id']
             if distinctid in idList:
-				print 'inside'
 				tempparams = {
 					'token':self.token,
 					'$distinct_id':distinctid
@@ -206,8 +216,8 @@ class Mixpanel(object):
 				tempparams.update(uparams)
 				batch.append(tempparams)
 				i =+ 1
-
-        print "Updating %s users" % i
+				
+        #print "Updated %s users in this batch" % i
         payload = {"data":base64.b64encode(json.dumps(batch)), "verbose":1,"api_key":self.api_key}
 
         response = urllib2.urlopen(url, urllib.urlencode(payload))
@@ -227,22 +237,33 @@ class Mixpanel(object):
             self.update(batch, idList, params)
             if len(users) // 100 != counter:
                 counter = len(users) // 100
-                print "%d users left to update" % len(users)
+                print "%d users left to check for event and update" % len(users)
             users = users[50:]
 
 
 if __name__ == '__main__':
+
+    ''' CHANGE THIS TO get_options() if you want command line inputs'''
+    #options = get_options()
+    options = {'to_date': '2013-10-26', 
+			    'from_date': '2013-10-26', 
+			    'event': 'View Item', 
+			    'fname': 'output_people.txt',
+			    'api_key': 'c629de7e6c491a1021b3353017647f6a',
+			    'api_secret': 'bd9773e3650c3b42e2c5b9c1247e2ea9',
+			    'token': '60c59d9fe30244bd5c56c7d054c83d66'
+			    }
+
     mixpanel = Mixpanel(
-        api_key = '3591de50eb56dd8f2c4813c6cef7ff00',
-        api_secret = 'ffe503a4dbb621844d2e1f2a7dc1852e',
-        token = '7cf84d01db1eab390298ed500bc43610'
+        api_key = options['api_key'],
+        api_secret = options['api_secret'],
+        token = options['token']
     )
 
-    options = get_options()
 
-    '''TO DO CHANGE THIS TO SYS ARG'''    
+    '''TO DO CHANGE THIS TO SYS ARG'''  
     mixpanel.event_request(['export'], 
-    	{'event' : options['event'],
+    	{'event' : [options['event']],
         'to_date' : options['to_date'],
         'from_date': options['from_date']
     })
@@ -251,11 +272,13 @@ if __name__ == '__main__':
     # print type(mixpanel.data) # <type 'str'>
     ''' change self.events to json encoding'''
     mixpanel.data_to_json("events")
-    ids_events = getDistinctIdsEvents(mixpanel.events)
+    ids_events = getDistinctIdsEvents(mixpanel.events) #this is actually a dict with id: max(date)
 
     ''' let us get all the people, export them, and read in the data'''
     fname = options['fname']
-    parameters = {'selector':''}
+    '''Here is the place to define your selector to target only the users that you're after'''
+    '''parameters = {'selector':'(properties["$email"] == "Albany") or (properties["$city"] == "Alexandria")'}'''
+    parameters = {'selector': '(properties["$country_code"] == "VN")'}
     response = mixpanel.people_request(parameters)
     
     parameters['session_id'] = json.loads(response)['session_id']
@@ -263,7 +286,7 @@ if __name__ == '__main__':
     global_total = json.loads(response)['total']
     
     print "Session id is %s \n" % parameters['session_id']
-    print "Here are the # of People Profiles %d" % global_total
+    print "Here are the total # of People Profiles: %d" % global_total
     has_results = True
     total = 0
     with open(fname,'w') as f:
@@ -273,19 +296,23 @@ if __name__ == '__main__':
             has_results = len(responser) == 1000
             for data in responser:
                 f.write(json.dumps(data)+'\n')
-            print "%d / %d" % (total,global_total)
+            print "Downloading %d / %d" % (total,global_total)
             parameters['page'] += 1
             if has_results:
                 response = mixpanel.people_request(parameters)
 	f.close()
 
 	ids_people = getDistinctIdsPeople(fname)
-	ids_common = ids_people.intersection(ids_people, ids_events)
+	ids_common = ids_people.intersection(ids_events.keys())
 
-	'''change the landing page loaded to sysarg'''
-	''' get max date and pass it'''
-	mixpanel.batch_update(fname, ids_common, {'$set': {'Landing Page Loaded': 'true'}, '$ignore_time': "true"})
+	dates_common = {}
+	for element in ids_common:
+		print element
+		dates_common[element] = ids_events[element]
+	print dates_common
+	quit()
 
-
+	'''TO DO get max date and pass it'''
+	mixpanel.batch_update(fname, ids_common, {'$set': {options['event']: 'true'}, '$ignore_time': "true"})
 
     ####
