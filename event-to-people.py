@@ -1,13 +1,6 @@
 '''
-Step #2 get max date of event
 
-Step #3 get all people profiles -> text file
-
-Step #4 read into memory the text file of people profiles
-
-Step #5 create a list of intersecting distinct ids between events and people profiles
-
-Step #6 for each distinct_id, $set( EVENT_NAME: date ) with $ignore_time = TRUE
+Step #6 for each distinct_id, pass through the $set: {event_name: date}  //currently true
 
 '''
 
@@ -244,15 +237,15 @@ class Mixpanel(object):
 if __name__ == '__main__':
 
     ''' CHANGE THIS TO get_options() if you want command line inputs'''
-    #options = get_options()
-    options = {'to_date': '2013-10-26', 
-			    'from_date': '2013-10-26', 
-			    'event': 'View Item', 
-			    'fname': 'output_people.txt',
-			    'api_key': 'c629de7e6c491a1021b3353017647f6a',
-			    'api_secret': 'bd9773e3650c3b42e2c5b9c1247e2ea9',
-			    'token': '60c59d9fe30244bd5c56c7d054c83d66'
-			    }
+    options = get_options()
+    #options = {'to_date': '2013-10-26', 
+	#		    'from_date': '2013-10-26', 
+	#		    'event': 'View Item', 
+	#		    'fname': 'output_people.txt',
+	#		    'api_key': 'c629de7e6c491a1021b3353017647f6a',
+	#		    'api_secret': 'bd9773e3650c3b42e2c5b9c1247e2ea9',
+	#		    'token': '60c59d9fe30244bd5c56c7d054c83d66'
+	#		    }
 
     mixpanel = Mixpanel(
         api_key = options['api_key'],
