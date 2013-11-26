@@ -211,7 +211,7 @@ class Mixpanel(object):
 				i =+ 1
 				
         #print "Updated %s users in this batch" % i
-        payload = {"data":base64.b64encode(json.dumps(batch)), "verbose":1,"api_key":self.api_key}
+        payload = {"data":base64.b64encode(json.dumps(batch)), "verbose":1, "ip":1, api_key":self.api_key}
 
         response = urllib2.urlopen(url, urllib.urlencode(payload))
         message = response.read()
@@ -306,9 +306,6 @@ if __name__ == '__main__':
 	quit()
 
 	'''TO DO get max date and pass it'''
-	mixpanel.batch_update(fname, ids_common, {'$set': {options['event']: 'true'}, 
-												'$ignore_time': "true", 
-												"ip": 0
-											})
+	mixpanel.batch_update(fname, ids_common, {'$set': {options['event']: 'true'}, '$ignore_time': "true"})
 
     ####
