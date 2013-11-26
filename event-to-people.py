@@ -211,7 +211,7 @@ class Mixpanel(object):
 				i =+ 1
 				
         #print "Updated %s users in this batch" % i
-        payload = {"data":base64.b64encode(json.dumps(batch)), "verbose":1, "ip":1, api_key":self.api_key}
+        payload = {"data":base64.b64encode(json.dumps(batch)), "verbose":1, "ip":0, "api_key":self.api_key}
 
         response = urllib2.urlopen(url, urllib.urlencode(payload))
         message = response.read()
@@ -237,15 +237,15 @@ class Mixpanel(object):
 if __name__ == '__main__':
 
     ''' CHANGE THIS TO get_options() if you want command line inputs'''
-    options = get_options()
-    #options = {'to_date': '2013-10-26', 
-	#		    'from_date': '2013-10-26', 
-	#		    'event': 'View Item', 
-	#		    'fname': 'output_people.txt',
-	#		    'api_key': 'c629de7e6c491a1021b3353017647f6a',
-	#		    'api_secret': 'bd9773e3650c3b42e2c5b9c1247e2ea9',
-	#		    'token': '60c59d9fe30244bd5c56c7d054c83d66'
-	#		    }
+    #options = get_options()
+    options = {'to_date': '2013-11-25', 
+			    'from_date': '2013-01-01', 
+			    'event': 'View Item', 
+			    'fname': 'output_people.txt',
+			    'api_key': 'c629de7e6c491a1021b3353017647f6a',
+			    'api_secret': 'bd9773e3650c3b42e2c5b9c1247e2ea9',
+			    'token': '60c59d9fe30244bd5c56c7d054c83d66'
+			    }
 
     mixpanel = Mixpanel(
         api_key = options['api_key'],
@@ -264,14 +264,16 @@ if __name__ == '__main__':
     # print mixpanel.data
     # print type(mixpanel.data) # <type 'str'>
     ''' change self.events to json encoding'''
+    print "Downloading events..." + '\n'
     mixpanel.data_to_json("events")
     ids_events = getDistinctIdsEvents(mixpanel.events) #this is actually a dict with id: max(date)
+    #mixpanel.events = []
 
     ''' let us get all the people, export them, and read in the data'''
     fname = options['fname']
     '''Here is the place to define your selector to target only the users that you're after'''
     '''parameters = {'selector':'(properties["$email"] == "Albany") or (properties["$city"] == "Alexandria")'}'''
-    parameters = {'selector': '(properties["$country_code"] == "VN")'}
+    parameters = {'selector': '(properties["$region"] == "California")'}
     response = mixpanel.people_request(parameters)
     
     parameters['session_id'] = json.loads(response)['session_id']
@@ -298,14 +300,15 @@ if __name__ == '__main__':
 	ids_people = getDistinctIdsPeople(fname)
 	ids_common = ids_people.intersection(ids_events.keys())
 
+    '''
 	dates_common = {}
 	for element in ids_common:
 		print element
 		dates_common[element] = ids_events[element]
 	print dates_common
 	quit()
-
-	'''TO DO get max date and pass it'''
-	mixpanel.batch_update(fname, ids_common, {'$set': {options['event']: 'true'}, '$ignore_time': "true"})
+    TO DO get max date and pass it
+    '''
+    mixpanel.batch_update(fname, ids_common, {'$set': {options['event']: 'true'}, '$ignore_time': "true"})
 
     ####
