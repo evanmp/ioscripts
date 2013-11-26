@@ -239,7 +239,7 @@ if __name__ == '__main__':
     ''' CHANGE THIS TO get_options() if you want command line inputs'''
     #options = get_options()
     options = {'to_date': '2013-11-25', 
-			    'from_date': '2013-01-01', 
+			    'from_date': '2013-10-01', 
 			    'event': 'View Item', 
 			    'fname': 'output_people.txt',
 			    'api_key': 'c629de7e6c491a1021b3353017647f6a',
@@ -254,6 +254,7 @@ if __name__ == '__main__':
     )
 
 
+    print "Downloading events..." + '\n'
     '''TO DO CHANGE THIS TO SYS ARG'''  
     mixpanel.event_request(['export'], 
     	{'event' : [options['event']],
@@ -264,10 +265,11 @@ if __name__ == '__main__':
     # print mixpanel.data
     # print type(mixpanel.data) # <type 'str'>
     ''' change self.events to json encoding'''
-    print "Downloading events..." + '\n'
     mixpanel.data_to_json("events")
     ids_events = getDistinctIdsEvents(mixpanel.events) #this is actually a dict with id: max(date)
-    #mixpanel.events = []
+    mixpanel.events = []
+    mixpanel.event_request = []
+    gc.collect()
 
     ''' let us get all the people, export them, and read in the data'''
     fname = options['fname']
