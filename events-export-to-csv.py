@@ -64,7 +64,9 @@ class Mixpanel(object):
         request_url = '/'.join([self.ENDPOINT, str(self.VERSION)] + methods) + '/?' + self.unicode_urlencode(params)
         print request_url
         request = urllib.urlopen(request_url)
-        data_output = request.read()    
+        data_output = request.read()
+        ''' remove the last line, which is blank'''
+        data_output.pop()
         self.data = data_output
 
     def unicode_urlencode(self, params):
@@ -123,7 +125,7 @@ class Mixpanel(object):
         # str  <-- the list elements are strings
 
         event_list = []
-        for event in event_raw[0:50]:
+        for event in event_raw:
             event_json = json.loads(event)
             event_list.append(event_json)
 
