@@ -65,8 +65,6 @@ class Mixpanel(object):
         print request_url
         request = urllib.urlopen(request_url)
         data_output = request.read()
-        ''' remove the last line, which is blank'''
-        data_output.pop()
         self.data = data_output
 
     def unicode_urlencode(self, params):
@@ -121,6 +119,9 @@ class Mixpanel(object):
 
         event_raw = self.data.split('\n')
 
+        '''remove the lost line, which is busted'''
+        event_raw.pop()
+
         # print type(event_raw[0])
         # str  <-- the list elements are strings
 
@@ -166,8 +167,8 @@ class Mixpanel(object):
 
 if __name__ == '__main__':
     mixpanel = Mixpanel(
-        api_key = '',
-        api_secret = ''
+        api_key = 'dd959fa9489903c4176448019afdbb2f',
+        api_secret = 'c0c77677a06b28f39b8a0d79f6bd2de7'
     )
     
     mixpanel.request(['export'], 
