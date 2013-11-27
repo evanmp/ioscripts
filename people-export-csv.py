@@ -151,7 +151,7 @@ class Mixpanel(object):
         for key in subkeys:
             header.append('property_' + key)
 
-        f = csv.writer(open("people_tactill.csv", "wb"))
+        f = csv.writer(open("people.csv", "wb"))
         f.writerow(header)
 
         #write the data
@@ -180,7 +180,7 @@ if __name__ == '__main__':
         token = ''
         )
 
-    
+
     '''Here is the place to define your selector to target only the users that you're after'''
     '''parameters = {'selector':'(properties["$email"] == "Albany") or (properties["$city"] == "Alexandria")'}'''
     parameters = {'selector':''}
@@ -192,7 +192,7 @@ if __name__ == '__main__':
 
     print "Session id is %s \n" % parameters['session_id']
     print "Here are the # of people %d" % global_total
-    fname = "people_tactill.txt"
+    fname = "people.txt"
     has_results = True
     total = 0
     with open(fname,'w') as f:
