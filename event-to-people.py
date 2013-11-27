@@ -36,27 +36,7 @@ try:
 except ImportError:
     import simplejson as json
 
-def get_options():
 
-	to_date = raw_input("What should the latest date be in YYYY-MM-DD format? (max: yesterday)"+'\n')
-	from_date = raw_input("What should the earlist date be in YYYY-MM-DD format?"+'\n')
-	event = raw_input("What event do you wish to convert into a People property?"+'\n')
-	fname = raw_input("What should the people export file be called?"+'\n')
-
-	api_key = raw_input("Tell me your api_key:"+'\n')
-	api_secret = raw_input("Tell me your api_secret"+'\n')
-	token = raw_input("Tell me your token"+'\n')
-
-	optionsDict = {'to_date': to_date, 
-				'from_date': from_date, 
-				'event': event, 
-				'fname': fname,
-				'api_key': api_key,
-				'api_secret': api_secret,
-				'token': token
-				}
-
-	return optionsDict
 
 
 def getDistinctIdsEvents(jsonList):    
@@ -237,15 +217,15 @@ class Mixpanel(object):
 if __name__ == '__main__':
 
     ''' CHANGE THIS TO get_options() if you want command line inputs'''
-    #options = get_options()
-    options = {'to_date': '2013-11-25', 
-			    'from_date': '2013-10-01', 
-			    'event': 'View Item', 
-			    'fname': 'output_people.txt',
-			    'api_key': 'c629de7e6c491a1021b3353017647f6a',
-			    'api_secret': 'bd9773e3650c3b42e2c5b9c1247e2ea9',
-			    'token': '60c59d9fe30244bd5c56c7d054c83d66'
-			    }
+    options = get_options()
+    #options = {'to_date': '2013-11-26', 
+	#		    'from_date': '2013-08-01', 
+	#		    'event': 'User Sign Up', 
+	#		    'fname': 'output_people.txt',
+	#		    'api_key': '',
+	#		    'api_secret': '',
+	#		    'token': ''
+	#		    }
 
     mixpanel = Mixpanel(
         api_key = options['api_key'],
@@ -267,15 +247,19 @@ if __name__ == '__main__':
     ''' change self.events to json encoding'''
     mixpanel.data_to_json("events")
     ids_events = getDistinctIdsEvents(mixpanel.events) #this is actually a dict with id: max(date)
-    mixpanel.events = []
-    mixpanel.event_request = []
-    gc.collect()
+    
+    ''' reinitalize the mixpanel object without any data'''
+    mixpanel = Mixpanel(
+        api_key = options['api_key'],
+        api_secret = options['api_secret'],
+        token = options['token']
+    )
 
     ''' let us get all the people, export them, and read in the data'''
     fname = options['fname']
     '''Here is the place to define your selector to target only the users that you're after'''
     '''parameters = {'selector':'(properties["$email"] == "Albany") or (properties["$city"] == "Alexandria")'}'''
-    parameters = {'selector': '(properties["$region"] == "California")'}
+    parameters = {'selector': ''}
     response = mixpanel.people_request(parameters)
     
     parameters['session_id'] = json.loads(response)['session_id']
