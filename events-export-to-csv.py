@@ -167,8 +167,8 @@ class Mixpanel(object):
 
 if __name__ == '__main__':
     mixpanel = Mixpanel(
-        api_key = 'dd959fa9489903c4176448019afdbb2f',
-        api_secret = 'c0c77677a06b28f39b8a0d79f6bd2de7'
+        api_key = '',
+        api_secret = ''
     )
     
     mixpanel.request(['export'], 
