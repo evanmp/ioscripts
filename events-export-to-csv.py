@@ -177,7 +177,8 @@ if __name__ == '__main__':
         })
 
     if (len(sys.argv) <= 1):
-        outfileName = raw_input("What should the outfile name be?")
+        outfileName = raw_input("What should the outfile name be?" + "\n")
+        mixpanel.export_csv(outfileName)
     else:        
         outfileName = sys.argv[1]
         #print "writing to " + outfileName
