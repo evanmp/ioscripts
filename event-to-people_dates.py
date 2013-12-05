@@ -1,6 +1,6 @@
 '''
 
-Step #6 for each distinct_id, pass through the $set: {event_name: date}  //currently true
+This is a script for exporting events, exporting people profiles according to a selector, and then updating profiles
 
 '''
 
