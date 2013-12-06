@@ -88,7 +88,7 @@ class Mixpanel(object):
             tempparams.update(uparams)
             batch.append(tempparams)
 
-        payload = {"data":base64.b64encode(json.dumps(batch)), "verbose":1,"ip":1,"api_key":self.api_key}
+        payload = {"data":base64.b64encode(json.dumps(batch)), "verbose":1,"ip":0,"api_key":self.api_key}
 
         response = urllib2.urlopen(url, urllib.urlencode(payload))
         message = response.read()
