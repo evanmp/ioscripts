@@ -160,7 +160,7 @@ class Mixpanel(object):
 
                 for subkey in subkeys:
                     try:
-                        line.append(event['properties'][subkey])
+                        line.append(event['properties'][subkey].encode('utf-8'))
                     except:
                         line.append("")
             f.writerow(line)
@@ -171,9 +171,11 @@ if __name__ == '__main__':
         api_secret = ''
     )
     
+
+    ''' Note that the to_date cannot be today or in the future!!!! '''
     mixpanel.request(['export'], 
         {'to_date' : '2013-11-15',
-        'from_date': '2013-11-14'
+        'from_date': '2013-11-01'
         })
 
     if (len(sys.argv) <= 1):
